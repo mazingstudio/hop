@@ -74,3 +74,9 @@ func main() {
 	hello2.Done()
 }
 ```
+
+## License & Third Party Code
+
+Hop uses [`streadway/amqp`](github.com/streadway/amqp) internally.
+
+Hop is distributed under the MIT license. Please read `LICENSE` for more details.
