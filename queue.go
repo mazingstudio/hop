@@ -5,7 +5,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
-// WorkQueue is an abstraction on a RabbitMQ connection that automatically
+// WorkQueue is an abstraction over an AMQP connection that automatically
 // performs management and configuration to provide easy work queue semantics.
 type WorkQueue struct {
 	conn   *amqp.Connection
@@ -61,7 +61,7 @@ func (q *WorkQueue) init() error {
 }
 
 // Close gracefully closes the connection to the message broker. DO NOT use this
-// if you created the queue using NewQueue.
+// if you're managing your AMQP connection manually.
 func (q *WorkQueue) Close() error {
 	err := q.conn.Close()
 	if err != nil {
