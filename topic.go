@@ -15,6 +15,8 @@ type Topic struct {
 }
 
 // GetTopic returns a "tube" handle, from which to pull and put jobs into.
+// Thanks to AMQP protocol rules, Topic declarations are idempotent, meaning
+// that Topics only get created if they don't already exist.
 func (q *WorkQueue) GetTopic(name string) (*Topic, error) {
 	ch, err := q.conn.Channel()
 	if err != nil {
@@ -36,12 +38,12 @@ func (q *WorkQueue) GetTopic(name string) (*Topic, error) {
 	}, nil
 }
 
-// Name returns the topic's name.
+// Name returns the Topic's name.
 func (t *Topic) Name() string {
 	return t.name
 }
 
-// Pull blocks until a job is available to consume and returns it.
+// Pull blocks until a Job is available to consume and returns it.
 func (t *Topic) Pull() (*Job, error) {
 	var (
 		del amqp.Delivery
@@ -60,7 +62,7 @@ func (t *Topic) Pull() (*Job, error) {
 	}, nil
 }
 
-// Put places a job in the queue with the given body. Use PutPublishing if you
+// Put places a Job in the queue with the given body. Use PutPublishing if you
 // need more control over your messages.
 func (t *Topic) Put(body []byte) error {
 	deliveryMode := amqp.Transient
@@ -84,7 +86,7 @@ func (t *Topic) PutPublishing(p *amqp.Publishing) error {
 	return nil
 }
 
-// Close manually closes the topic's underlying channel. Since closing the
+// Close manually closes the Topic's underlying channel. Since closing the
 // topic's parent queue also closes the topic's channel, that approach is
 // generally preferred.
 func (t *Topic) Close() error {
