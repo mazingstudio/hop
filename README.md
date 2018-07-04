@@ -79,4 +79,4 @@ func main() {
 
 Hop uses [`streadway/amqp`](github.com/streadway/amqp) internally.
 
-Hop is distributed under the MIT license. Please read `LICENSE` for more details.
+Hop is distributed under the MIT license. Please refer to `LICENSE` for more details.
