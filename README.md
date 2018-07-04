@@ -52,13 +52,25 @@ func main() {
 		log.Fatalf("error putting: %s", err)
 	}
 
-	// Pull the job from the Topic
+	// Pull the Job from the Topic
 	hello, err := tasks.Pull()
 	if err != nil {
 		log.Fatalf("error pulling: %s", err)
 	}
-
 	// This should print "hello"
 	log.Infof("job body: %s", hello.Body())
+
+	// Mark the Job as failed and requeue
+	hello.Fail(true)
+
+	// Pull the Job again
+	hello2, err := tasks.Pull()
+	if err != nil {
+		log.Fatalf("error pulling: %s", err)
+	}
+	log.Infof("job body: %s", hello.Body())
+
+	// Mark the Job as done
+	hello2.Done()
 }
 ```
