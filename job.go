@@ -38,7 +38,7 @@ func (j *Job) Body() []byte {
 }
 
 // Delivery returns the Job's underlying delivery. Use this if you need more
-// control over the AMQP messages.
+// control over the AMQP message.
 func (j *Job) Delivery() *amqp.Delivery {
 	return j.del
 }

@@ -77,6 +77,6 @@ func main() {
 
 ## License & Third Party Code
 
-Hop uses [`streadway/amqp`](github.com/streadway/amqp) internally.
+Hop uses [`streadway/amqp`](https://github.com/streadway/amqp) internally.
 
 Hop is distributed under the MIT License. Please refer to `LICENSE` for more details.
