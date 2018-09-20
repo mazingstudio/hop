@@ -12,7 +12,6 @@ import (
 type WorkQueue struct {
 	conn        *connection
 	config      *Config
-	mu          sync.Mutex
 	channelPool sync.Pool
 }
 

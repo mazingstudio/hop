@@ -1,6 +1,8 @@
 package hop
 
 import (
+	"sync"
+
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
@@ -10,6 +12,7 @@ type connection struct {
 	addr   string
 	config *Config
 	conn   *amqp.Connection
+	mu     sync.Mutex
 }
 
 func newConnection(addr string, config *Config) *connection {
@@ -20,6 +23,8 @@ func newConnection(addr string, config *Config) *connection {
 }
 
 func (c *connection) connect() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	conn, err := c.dialWithBackOff()
 	if err != nil {
 		return errors.Wrap(err, "queue connection failed permanently")
