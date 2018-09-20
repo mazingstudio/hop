@@ -13,9 +13,12 @@ type Job struct {
 
 // Done marks the Job for queue removal.
 func (j *Job) Done() error {
-	// We ack directly on the parent channel, in case we need to migrate
-	// to a different one, in the case of a channel failure
-	err := j.topic.ch.Ack(j.del.DeliveryTag, false)
+	ch, err := j.topic.queue.getChannel()
+	if err != nil {
+		return errors.Wrap(err, "error getting channel")
+	}
+	defer j.topic.queue.putChannel(ch)
+	err = ch.Ack(j.del.DeliveryTag, false)
 	if err != nil {
 		return errors.Wrap(err, "error acknowledging delivery")
 	}
@@ -25,7 +28,12 @@ func (j *Job) Done() error {
 // Fail marks the Job as failed. If requeue is true, the Job will be added
 // back to the queue; otherwise, it will be dropped.
 func (j *Job) Fail(requeue bool) error {
-	err := j.topic.ch.Reject(j.del.DeliveryTag, requeue)
+	ch, err := j.topic.queue.getChannel()
+	if err != nil {
+		return errors.Wrap(err, "error getting channel")
+	}
+	defer j.topic.queue.putChannel(ch)
+	err = ch.Reject(j.del.DeliveryTag, requeue)
 	if err != nil {
 		return errors.Wrap(err, "error rejecting delivery")
 	}

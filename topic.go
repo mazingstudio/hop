@@ -9,19 +9,20 @@ import (
 // put into. Underneath, each topic corresponds to a queue bound to a direct
 // exchange, and each topic instance manages its own channel.
 type Topic struct {
+	queue  *WorkQueue
 	name   string
 	config *Config
-	ch     *amqp.Channel
 }
 
 // GetTopic returns a "tube" handle, from which to pull and put jobs into.
 // Thanks to AMQP protocol rules, Topic declarations are idempotent, meaning
 // that Topics only get created if they don't already exist.
 func (q *WorkQueue) GetTopic(name string) (*Topic, error) {
-	ch, err := q.conn.Channel()
+	ch, err := q.getChannel()
 	if err != nil {
-		return nil, errors.Wrap(err, "error starting new channel")
+		return nil, errors.Wrap(err, "error getting channel")
 	}
+	defer q.putChannel(ch)
 	_, err = ch.QueueDeclare(name, q.config.Persistent,
 		false, false, false, nil)
 	if err != nil {
@@ -32,9 +33,9 @@ func (q *WorkQueue) GetTopic(name string) (*Topic, error) {
 		return nil, errors.Wrap(err, "unable to bind queue")
 	}
 	return &Topic{
+		queue:  q,
 		name:   name,
 		config: q.config,
-		ch:     ch,
 	}, nil
 }
 
@@ -50,8 +51,13 @@ func (t *Topic) Pull() (*Job, error) {
 		ok  bool
 		err error
 	)
+	ch, err := t.queue.getChannel()
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting channel")
+	}
+	defer t.queue.putChannel(ch)
 	for !ok {
-		del, ok, err = t.ch.Get(t.name, false)
+		del, ok, err = ch.Get(t.name, false)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting message")
 		}
@@ -79,20 +85,14 @@ func (t *Topic) Put(body []byte) error {
 // PutPublishing puts an AMQP message into the queue. Use this if you need more
 // granularity in your message parameters.
 func (t *Topic) PutPublishing(p *amqp.Publishing) error {
-	err := t.ch.Publish(t.config.ExchangeName, t.name, false, false, *p)
+	ch, err := t.queue.getChannel()
+	if err != nil {
+		return errors.Wrap(err, "error getting channel")
+	}
+	defer t.queue.putChannel(ch)
+	err = ch.Publish(t.config.ExchangeName, t.name, false, false, *p)
 	if err != nil {
 		return errors.Wrap(err, "error publishing message")
-	}
-	return nil
-}
-
-// Close manually closes the Topic's underlying channel. Since closing the
-// topic's parent queue also closes the topic's channel, that approach is
-// generally preferred.
-func (t *Topic) Close() error {
-	err := t.ch.Close()
-	if err != nil {
-		return errors.Wrap(err, "error closing channel")
 	}
 	return nil
 }

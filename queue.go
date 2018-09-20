@@ -1,6 +1,8 @@
 package hop
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
 )
@@ -8,8 +10,10 @@ import (
 // WorkQueue is an abstraction over an AMQP connection that automatically
 // performs management and configuration to provide easy work queue semantics.
 type WorkQueue struct {
-	conn   *amqp.Connection
-	config *Config
+	conn        *connection
+	config      *Config
+	mu          sync.Mutex
+	channelPool sync.Pool
 }
 
 const exchangeKind = "direct"
@@ -24,20 +28,21 @@ func DefaultQueue(addr string) (*WorkQueue, error) {
 // with the passed configuration. If you need to manage your own connection,
 // use NewQueue.
 func ConnectQueue(addr string, config *Config) (*WorkQueue, error) {
-	conn, err := amqp.Dial(addr)
+	conn := newConnection(addr, config)
+	err := conn.connect()
 	if err != nil {
-		return nil, errors.Wrap(err, "error dialing")
+		return nil, errors.Wrap(err, "error connecting")
 	}
-	return NewQueue(conn, config)
+	return newQueue(conn, config)
 }
 
-// NewQueue allows you to manually construct a WorkQueue with the provided
-// parameters. Due to the slight verbosity of this process, DefaultQueue and
-// ConnectQueue are generally recommended instead.
-func NewQueue(conn *amqp.Connection, config *Config) (*WorkQueue, error) {
+func newQueue(conn *connection, config *Config) (*WorkQueue, error) {
 	q := &WorkQueue{
 		conn:   conn,
 		config: config,
+		channelPool: sync.Pool{
+			New: conn.newChannel,
+		},
 	}
 	if err := q.init(); err != nil {
 		return nil, errors.Wrap(err, "failed to initialize queue")
@@ -46,11 +51,11 @@ func NewQueue(conn *amqp.Connection, config *Config) (*WorkQueue, error) {
 }
 
 func (q *WorkQueue) init() error {
-	ch, err := q.conn.Channel()
+	ch, err := q.getChannel()
 	if err != nil {
 		return errors.Wrap(err, "error getting management channel")
 	}
-	defer ch.Close()
+	defer q.putChannel(ch)
 
 	err = ch.ExchangeDeclare(q.config.ExchangeName, exchangeKind,
 		false, false, false, false, nil)
@@ -68,4 +73,21 @@ func (q *WorkQueue) Close() error {
 		return errors.Wrap(err, "error closing connection")
 	}
 	return nil
+}
+
+// --- Channels ---
+
+func (q *WorkQueue) getChannel() (*amqp.Channel, error) {
+	res := q.channelPool.Get()
+	switch v := res.(type) {
+	case error:
+		return nil, errors.Wrap(v, "channel retrieval failed permanently")
+	case *amqp.Channel:
+		return v, nil
+	}
+	return nil, nil
+}
+
+func (q *WorkQueue) putChannel(ch *amqp.Channel) {
+	q.channelPool.Put(ch)
 }
