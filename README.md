@@ -1,6 +1,7 @@
 # Hop
 
 [![GoDoc](https://godoc.org/github.com/mazingstudio/hop?status.svg)](https://godoc.org/github.com/mazingstudio/hop)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mazingstudio/hop)](https://goreportcard.com/report/github.com/mazingstudio/hop)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
 
 _An AMQP client wrapper that provides easy work queue semantics_
@@ -46,7 +47,7 @@ func main() {
 		log.Fatalf("error getting topic: %s", err)
 	}
 
-	// Put a job into the "tasks" Topic
+	// Put a Job into the "tasks" Topic
 	err = tasks.Put([]byte("Hello"))
 	if err != nil {
 		log.Fatalf("error putting: %s", err)
