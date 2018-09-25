@@ -9,16 +9,13 @@ import (
 type Job struct {
 	topic *Topic
 	del   *amqp.Delivery
+	ch    *amqp.Channel
 }
 
 // Done marks the Job for queue removal.
 func (j *Job) Done() error {
-	ch, err := j.topic.queue.getChannel()
-	if err != nil {
-		return errors.Wrap(err, "error getting channel")
-	}
-	defer j.topic.queue.putChannel(ch)
-	err = ch.Ack(j.del.DeliveryTag, false)
+	defer j.topic.queue.putChannel(j.ch)
+	err := j.ch.Ack(j.del.DeliveryTag, false)
 	if err != nil {
 		return errors.Wrap(err, "error acknowledging delivery")
 	}
@@ -28,12 +25,8 @@ func (j *Job) Done() error {
 // Fail marks the Job as failed. If requeue is true, the Job will be added
 // back to the queue; otherwise, it will be dropped.
 func (j *Job) Fail(requeue bool) error {
-	ch, err := j.topic.queue.getChannel()
-	if err != nil {
-		return errors.Wrap(err, "error getting channel")
-	}
-	defer j.topic.queue.putChannel(ch)
-	err = ch.Reject(j.del.DeliveryTag, requeue)
+	defer j.topic.queue.putChannel(j.ch)
+	err := j.ch.Nack(j.del.DeliveryTag, false, requeue)
 	if err != nil {
 		return errors.Wrap(err, "error rejecting delivery")
 	}

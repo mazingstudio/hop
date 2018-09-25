@@ -55,7 +55,6 @@ func (t *Topic) Pull() (*Job, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting channel")
 	}
-	defer t.queue.putChannel(ch)
 	for !ok {
 		del, ok, err = ch.Get(t.name, false)
 		if err != nil {
@@ -65,6 +64,7 @@ func (t *Topic) Pull() (*Job, error) {
 	return &Job{
 		topic: t,
 		del:   &del,
+		ch:    ch,
 	}, nil
 }
 
