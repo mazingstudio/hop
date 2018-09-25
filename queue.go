@@ -57,7 +57,7 @@ func (q *WorkQueue) init() error {
 	defer q.putChannel(ch)
 
 	err = ch.ExchangeDeclare(q.config.ExchangeName, exchangeKind,
-		false, false, false, false, nil)
+		q.config.Persistent, false, false, false, nil)
 	if err != nil {
 		return errors.Wrap(err, "error declaring exchange")
 	}
