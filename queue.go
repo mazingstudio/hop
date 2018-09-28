@@ -24,8 +24,7 @@ func DefaultQueue(addr string) (*WorkQueue, error) {
 }
 
 // ConnectQueue dials using the provided address string and creates a queue
-// with the passed configuration. If you need to manage your own connection,
-// use NewQueue.
+// with the passed configuration.
 func ConnectQueue(addr string, config *Config) (*WorkQueue, error) {
 	conn := newConnection(addr, config)
 	err := conn.connect()
@@ -64,8 +63,7 @@ func (q *WorkQueue) init() error {
 	return nil
 }
 
-// Close gracefully closes the connection to the message broker. DO NOT use this
-// if you're managing your AMQP connection manually.
+// Close gracefully closes the connection to the message broker.
 func (q *WorkQueue) Close() error {
 	err := q.conn.Close()
 	if err != nil {
