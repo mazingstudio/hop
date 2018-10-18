@@ -1,6 +1,7 @@
 # Hop
 
 [![GoDoc](https://godoc.org/github.com/mazingstudio/hop?status.svg)](https://godoc.org/github.com/mazingstudio/hop)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mazingstudio/hop)](https://goreportcard.com/report/github.com/mazingstudio/hop)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
 
 _An AMQP client wrapper that provides easy work queue semantics_
@@ -46,19 +47,37 @@ func main() {
 		log.Fatalf("error getting topic: %s", err)
 	}
 
-	// Put a job into the "tasks" Topic
+	// Put a Job into the "tasks" Topic
 	err = tasks.Put([]byte("Hello"))
 	if err != nil {
 		log.Fatalf("error putting: %s", err)
 	}
 
-	// Pull the job from the Topic
+	// Pull the Job from the Topic
 	hello, err := tasks.Pull()
 	if err != nil {
 		log.Fatalf("error pulling: %s", err)
 	}
-
 	// This should print "hello"
 	log.Infof("job body: %s", hello.Body())
+
+	// Mark the Job as failed and requeue
+	hello.Fail(true)
+
+	// Pull the Job again
+	hello2, err := tasks.Pull()
+	if err != nil {
+		log.Fatalf("error pulling: %s", err)
+	}
+	log.Infof("job body: %s", hello.Body())
+
+	// Mark the Job as done
+	hello2.Done()
 }
 ```
+
+## License & Third Party Code
+
+Hop uses [`streadway/amqp`](https://github.com/streadway/amqp) internally.
+
+Hop is distributed under the MIT License. Please refer to `LICENSE` for more details.
